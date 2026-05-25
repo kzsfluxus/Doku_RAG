@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtuális környezet
+.venv/
+venv/
+env/
+
+# IDE / szerkesztő
+.spyproject/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Tesztelési lefedettség
+.coverage
+htmlcov/
+
+# Doku RAG – futásidejű adatok (ne kerüljenek verziókezelőbe)
+data/
+data/documents.json
+data/index.faiss
+data/file_snapshot.json
+
+# Konfiguráció (érzékeny adatokat tartalmazhat: útvonalak, jogosultságok)
+doku_rag.ini
+
+# Modellek (nagy binárisok)
+models/*.bin
+models/*.gguf
+
+# Egyéb
+TODO.txt
+*.log
+.DS_Store
+Thumbs.db

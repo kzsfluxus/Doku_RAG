@@ -1,0 +1,4 @@
+mwclient
+sentence-transformers
+faiss-gpu
+flask

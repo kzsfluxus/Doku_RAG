@@ -1,0 +1,37 @@
+[documents]
+# Gyökérkönyvtár elérési útja (kötelező)
+root_dir = /home/user/iratok
+
+# Maximális mélység a könyvtárfában (0 = csak a gyökér, 1 = egy szint mélység, stb.)
+max_depth = 2
+
+# Támogatott fájlkiterjesztések (vesszővel elválasztva)
+# Alapértelmezett: txt, md, pdf, docx, xlsx, pptx, odt, rtf, csv, json, html
+extensions = txt, md, pdf, docx, xlsx, pptx, odt, rtf, csv, json, html
+
+[models]
+language_model = mistral
+
+# --- Könyvtárleírások ---
+# Csak azok a könyvtárak kerülnek feldolgozásra, amelyekhez leírás van megadva.
+# Formátum: [dir.<alkönyvtár neve>] szekció, description = <leírás>
+# A gyökérkönyvtárhoz a [dir] szekció tartozik.
+# Alkönyvtárak: [dir.<név>] vagy [dir.<szülő>/<gyerek>] (mélységtől függően)
+
+[dir]
+description = XY Kft összes irata
+
+[dir.számlák]
+description = kiállított és beérkezett számlák
+
+[dir.életrajzok]
+description = jelentkezők önéletrajzai és motivációs levelei
+
+[dir.szerződések]
+description = ügyféllel és alvállalkozókkal kötött szerződések
+
+[dir.szerződések/aktív]
+description = jelenleg érvényes szerződések
+
+[dir.szerződések/lezárt]
+description = lejárt vagy felbontott szerződések
