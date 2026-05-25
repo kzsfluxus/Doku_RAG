@@ -4,7 +4,7 @@
 prompt_builder.py – Prompt építő modul a Doku RAG rendszerhez.
 @author: zsolt
 
-A wiki-specifikus megfogalmazások helyett általános dokumentum-alapú
+Általános prompt epítés, dokumentumok alapján, általános dokumentum-alapú
 kontextust épít, felhasználva a könyvtárleírásokat is.
 """
 
