@@ -2,3 +2,13 @@ mwclient
 sentence-transformers
 faiss-cpu
 flask
+
+# Dokumentumtípus-kezelők
+pypdf                 # PDF
+python-docx           # DOCX
+openpyxl              # XLSX/XLSM
+xlrd                  # XLS (legacy)
+python-pptx           # PPTX
+odfpy                 # ODT
+striprtf              # RTF
+pandas                # CSV, XLS fallback

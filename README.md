@@ -60,7 +60,7 @@ cd Doku_RAG
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements.txt          # CPU-only
+pip install -r requirements-cpu.txt      # CPU-only
 # vagy
 pip install -r requirements-gpu.txt      # NVIDIA GPU + CUDA
 ```
