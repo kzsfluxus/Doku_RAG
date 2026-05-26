@@ -161,19 +161,78 @@ class RAGSystem:
             logger.error("Hiba az adatfrissítés során: %s", e)
             return False
 
-    def process_question(self, question: str) -> str:
+    def process_question(self, question: str) -> tuple:
+        """Visszatér: (válasz_szöveg, forrás_dokumentumok_listája)
+
+        A forrás_dokumentumok_listája elemei dict-ek, amelyek tartalmazzák
+        a 'title' és 'path' mezőket (deduplication: fájlonként egy bejegyzés).
+        """
         if not self._initialized:
             raise RAGQueryError("A RAG rendszer nincs inicializálva!")
         if not question or not question.strip():
-            return "Kérlek, adj meg egy kérdést!"
+            return "Kérlek, adj meg egy kérdést!", []
         try:
             question = question.strip()
             results = self._embedder.query(question)
             prompt = build_prompt(results, question)
             raw_answer = run_ollama_model(prompt, self._model_name)
-            return clean_llm_response(raw_answer)
+            clean_answer = clean_llm_response(raw_answer)
+
+            # Dedup: ugyanaz a fájl több chunk-ból is visszajöhet
+            seen = set()
+            sources = []
+            for doc in results:
+                path = doc.get("path", "")
+                if path and path not in seen:
+                    seen.add(path)
+                    sources.append({
+                        "title": doc.get("title", path),
+                        "path":  path,
+                    })
+
+            return clean_answer, sources
         except Exception as e:
             raise RAGQueryError(f"Kérdés feldolgozási hiba: {e}") from e
+
+    def full_text_search(self, query: str, max_results: int = 10) -> list:
+        """Egyszerű case-insensitive full-text keresés a betöltött chunkok között.
+
+        Visszatér: deduplication utáni fájl-lista, minden elem dict:
+            {'title': ..., 'path': ..., 'excerpt': ...}
+        Az 'excerpt' a találatot tartalmazó chunk első 200 karaktere.
+        """
+        if not self._initialized:
+            raise RAGQueryError("A RAG rendszer nincs inicializálva!")
+        if not query or not query.strip():
+            return []
+        if not self._docs:
+            return []
+
+        query_lower = query.strip().lower()
+        seen = set()
+        results = []
+
+        for doc in self._docs:
+            text = doc.get("text", "")
+            if query_lower in text.lower():
+                path = doc.get("path", "")
+                if path and path not in seen:
+                    seen.add(path)
+                    # Kivonat: a találat körüli szövegrész
+                    idx = text.lower().find(query_lower)
+                    start = max(0, idx - 60)
+                    end = min(len(text), idx + 140)
+                    excerpt = ("…" if start > 0 else "") + text[start:end].strip() + ("…" if end < len(text) else "")
+                    results.append({
+                        "title":   doc.get("title", path),
+                        "path":    path,
+                        "excerpt": excerpt,
+                    })
+                    if len(results) >= max_results:
+                        break
+
+        logger.info("Full-text keresés '%s': %d találat", query, len(results))
+        return results
 
     def get_system_info(self) -> Dict[str, Any]:
         info = {

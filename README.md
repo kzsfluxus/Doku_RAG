@@ -17,6 +17,8 @@ Tipikus felhasználási területek: vállalati iratkezelés, HR-dokumentáció, 
 - 🤖 Lokális LLM Ollama-n keresztül (alapértelmezett: mistral)
 - 🌐 Flask webes keresőfelület + REST API
 - 💻 CLI interaktív mód
+- 📄 Forrás dokumentumok letöltése közvetlenül a válasz alól
+- 🔍 Full-text keresés a teljes dokumentumtárban
 
 ## 📄 Támogatott dokumentumtípusok
 
@@ -138,16 +140,108 @@ Elérhető: [http://localhost:5000](http://localhost:5000)
 
 ---
 
+## 🖥️ Webes felület
+
+A webes felület két tabból áll.
+
+### ❓ Kérdés-válasz tab (`/`)
+
+A főoldalon természetes nyelven tehetsz fel kérdéseket a dokumentumtár tartalmával kapcsolatban. Az LLM a legrelevánabb chunk-ok alapján generálja a választ. A válasz alatt a rendszer megjeleníti azokat a forrásdokumentumokat, amelyekből a kontextus összeállt – minden forrás egy kattintható letöltési link.
+
+```
+┌──────────────────────────────────┐
+│ Kérdés: [_____________________]  │
+│ [Küldés]                         │
+├──────────────────────────────────┤
+│ Az LLM válasza itt jelenik meg.  │
+│                                  │
+│ 📄 Forrás dokumentumok           │
+│  • szerződés_2024.pdf  ↓         │
+│  • árajánlat_Q1.docx   ↓         │
+└──────────────────────────────────┘
+```
+
+### 🔍 Keresés tab (`/search`)
+
+A keresés tab egyszerű, teljes szöveges (full-text) keresést biztosít a dokumentumtárban. A keresés a memóriában lévő chunk-lista `text` mezőjében fut, case-insensitive egyeztetéssel. Az eredménylista találatonként tartalmazza:
+
+- a fájl nevét letöltési linkként
+- egy ~200 karakteres szövegkivonatot a találat közvetlen környezetéből
+
+```
+┌──────────────────────────────────┐
+│ Keresés: [__________________]    │
+│ [Keresés]                        │
+├──────────────────────────────────┤
+│ 3 találat a „nettó fizetendő"    │
+│ kifejezésre:                     │
+│                                  │
+│ 📄 számla_2024_03.pdf  ↓         │
+│  …összesen nettó fizetendő       │
+│   összeg: 450 000 Ft…            │
+│                                  │
+│ 📄 árajánlat_Q1.xlsx   ↓         │
+│  …a nettó fizetendő díj az       │
+│   egyedi megállapodás alapján…   │
+└──────────────────────────────────┘
+```
+
+### 📥 Dokumentum letöltés
+
+Mindkét tabban a dokumentumok neve kattintható letöltési link. A `/download?path=<útvonal>` végpont ellenőrzi, hogy a kért fájl az `ini`-ben megadott `root_dir` könyvtáron belül van-e; azon kívüli elérési út `403 Forbidden` választ kap.
+
+---
+
 ## HTTP végpontok
 
 | Végpont | Metódus | Leírás |
 |---------|---------|--------|
 | `/` | GET, POST | Főoldal – kérdés-válasz felület |
+| `/search` | GET, POST | Full-text keresés a dokumentumtárban |
+| `/download` | GET | Dokumentum letöltése (`?path=<abszolút útvonal>`) |
 | `/refresh` | POST | Dokumentumok újrafeldolgozása |
-| `/api/ask` | POST (JSON) | REST API kérdéshez |
+| `/api/ask` | POST (JSON) | REST API kérdéshez – válasz + forrás lista |
+| `/api/search` | POST (JSON) | REST API full-text kereséshez |
 | `/api/health` | GET | Egészségügyi ellenőrzés |
 | `/api/status` | GET | Részletes rendszerállapot |
 | `/api/reload-model` | POST | Modell konfiguráció újratöltése |
+
+### `/api/ask` kérés/válasz
+
+```json
+// POST /api/ask
+{ "question": "Mikor jár le a bérleti szerződés?" }
+
+// Válasz
+{
+  "question": "Mikor jár le a bérleti szerződés?",
+  "answer": "A bérleti szerződés 2025. december 31-én jár le.",
+  "sources": [
+    { "title": "Szerződések / berleti_szerzodes_2023.pdf", "path": "/home/user/ceg_iratai/szerződések/berleti_szerzodes_2023.pdf" }
+  ],
+  "status": "success"
+}
+```
+
+### `/api/search` kérés/válasz
+
+```json
+// POST /api/search
+{ "query": "nettó fizetendő", "max_results": 10 }
+
+// Válasz
+{
+  "query": "nettó fizetendő",
+  "results": [
+    {
+      "title": "Számlák / szamla_2024_03.pdf",
+      "path": "/home/user/ceg_iratai/számlák/szamla_2024_03.pdf",
+      "excerpt": "…összesen nettó fizetendő összeg: 450 000 Ft…"
+    }
+  ],
+  "status": "success"
+}
+```
 
 ---
 
@@ -168,7 +262,7 @@ Doku_RAG/
 ├── models/
 │   └── models.ini          # Aktív LLM neve
 ├── templates/
-│   └── index.html
+│   └── index.html          # Kérdés-válasz + full-text keresés felület
 ├── static/
 ├── development_plan/
 │   └── fejlesztesi_terv.md

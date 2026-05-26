@@ -5,12 +5,100 @@
     <title>Doku_RAG_System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/simple.min.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="img/png" sizes="16x16">
+    <style>
+        .source-list {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-2, #f5f5f5);
+            border-left: 3px solid var(--accent, #1a7f4b);
+            border-radius: 4px;
+        }
+        .source-list h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-muted, #555);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .source-list ul {
+            margin: 0;
+            padding-left: 1.2em;
+        }
+        .source-list li {
+            margin: 0.25rem 0;
+            font-size: 0.92rem;
+        }
+
+        .search-result-item {
+            margin: 0.75rem 0;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border, #ddd);
+            border-radius: 4px;
+        }
+        .search-result-item .result-title {
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        .search-result-item .result-excerpt {
+            font-size: 0.88rem;
+            color: var(--text-muted, #555);
+            font-style: italic;
+        }
+
+        nav.tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border, #ddd);
+        }
+        nav.tabs a {
+            padding: 0.5rem 1.25rem;
+            text-decoration: none;
+            color: var(--text-muted, #555);
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: -2px;
+        }
+        nav.tabs a.active {
+            border-color: var(--border, #ddd);
+            background: var(--bg, white);
+            color: var(--text, #111);
+            font-weight: bold;
+        }
+        nav.tabs a:hover:not(.active) {
+            background: var(--bg-2, #f5f5f5);
+        }
+
+        .no-results {
+            color: var(--text-muted, #777);
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
-    <h1>Doku_RAG_System</h1>
-    <form method="post">
+    <h1>
+        <img src="{{ url_for('static', filename='img/doku_rag_logo.svg') }}"
+             alt="logo" height="32" style="vertical-align:middle;margin-right:0.4em;">
+        Doku_RAG_System
+    </h1>
+
+    {# --- Tab navigáció --- #}
+    {% set active_tab = 'search' if search_query is defined else 'ask' %}
+    <nav class="tabs">
+        <a href="/"      class="{{ 'active' if active_tab == 'ask'    else '' }}">❓ Kérdés-válasz</a>
+        <a href="/search" class="{{ 'active' if active_tab == 'search' else '' }}">🔍 Keresés</a>
+    </nav>
+
+    {# ================================================================
+       TAB 1: Kérdés-válasz
+       ================================================================ #}
+    {% if active_tab == 'ask' %}
+    <form method="post" action="/">
         <label for="question">Kérdés:</label><br>
-        <input type="text" id="question" name="question" value="{{ question }}" size="80"><br><br>
+        <input type="text" id="question" name="question"
+               value="{{ question }}" size="80"
+               placeholder="Tegyél fel egy kérdést a dokumentumokkal kapcsolatban…"><br><br>
         <button type="submit">Küldés</button>
     </form>
     <hr>
@@ -19,7 +107,59 @@
     <article>
         <p>{{ clean_answer.replace('\n', '<br>')|safe }}</p>
     </article>
+
+    {% if sources %}
+    <div class="source-list">
+        <h4>📄 Forrás dokumentumok</h4>
+        <ul>
+        {% for src in sources %}
+            <li>
+                <a href="{{ url_for('download_file', path=src.path) }}"
+                   title="{{ src.path }}">
+                    {{ src.title.split(' / ')|last if ' / ' in src.title else src.title }}
+                </a>
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
     {% endif %}
-    
+    {% endif %}
+    {% endif %}
+
+    {# ================================================================
+       TAB 2: Full-text keresés
+       ================================================================ #}
+    {% if active_tab == 'search' %}
+    <form method="post" action="/search">
+        <label for="query">Keresési kifejezés:</label><br>
+        <input type="text" id="query" name="query"
+               value="{{ search_query }}" size="80"
+               placeholder="Keresés a dokumentumokban (pl. szó, kifejezés)…"><br><br>
+        <button type="submit">Keresés</button>
+    </form>
+    <hr>
+
+    {% if search_query %}
+        {% if search_error %}
+            <p class="no-results">❌ Hiba történt a keresés során.</p>
+        {% elif search_results %}
+            <p><strong>{{ search_results|length }} találat</strong> a(z) „{{ search_query }}" kifejezésre:</p>
+            {% for result in search_results %}
+            <div class="search-result-item">
+                <div class="result-title">
+                    📄 <a href="{{ url_for('download_file', path=result.path) }}"
+                          title="{{ result.path }}">
+                        {{ result.title.split(' / ')|last if ' / ' in result.title else result.title }}
+                    </a>
+                </div>
+                <div class="result-excerpt">{{ result.excerpt }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-results">Nincs találat a(z) „{{ search_query }}" kifejezésre.</p>
+        {% endif %}
+    {% endif %}
+    {% endif %}
+
 </body>
 </html>
